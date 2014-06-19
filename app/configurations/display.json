@@ -7,12 +7,16 @@
             "url": "http://cancergenome.nih.gov"
         },
         {
-            "label": "Cancer Regulome Home",
-            "url": "http://www.cancerregulome.org"
+            "label": "TCGA Publication Guidelines",
+            "url": "http://cancergenome.nih.gov/publications/publicationguidelines"
         },
         {
             "divider": true,
             "header": "About Us"
+        },
+        {
+            "label": "Cancer Regulome Home",
+            "url": "http://www.cancerregulome.org"
         },
         {
             "label": "Institute for Systems Biology",

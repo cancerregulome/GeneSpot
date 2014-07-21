@@ -1,5 +1,6 @@
 /*
   usage: mongo <host>:<port>/<db> update_fm_with_label_lookup.js --eval "var ftypes = ['RPPA', 'METH']"
+  if eval clause not included, will run against all feature types
 */
 function replaceUnderscore(str) {
   return str.replace(/_/g, ' ');
@@ -8,19 +9,19 @@ function replaceUnderscore(str) {
 var debugCLINCounts = [0, 0, 0, 0, 0, 0];
 var twoReplace = "$3: $1 vs $2";
 var oneReplace = "$2: $1";
-//	In some cases, the string(s) in front of the “|” are not unique/specific enough and we will need to include the feature name after the “|” as follows
-//	C:SAMP:I(A|X) ⇒ f(X) A
-//	C:SAMP:I(A,B|X) ⇒ f(X) A vs B
+//	In some cases, the string(s) in front of the '|' are not unique/specific enough and we will need to include the feature name after the '|' as follows
+//	C:SAMP:I(A|X) ==> f(X) A
+//	C:SAMP:I(A,B|X) ==> f(X) A vs B
 var checks = [
-//	cases where we have G1,G2,.. drop the “G” (redundant with the word “grade”)
+//	cases where we have G1,G2,.. drop the 'G' (redundant with the word grade)
 //	B:CLIN:I(G1|neoplasm_histologic_grade)::::: => neoplasm histologic grade 1 
   [/I\(G([0-9]+),G([0-9]+)\|(.+)\)/m, twoReplace], 
 //	B:CLIN:I(G1,G2|neoplasm_histologic_grade)::::: => neoplasm histologic grade 1 vs 2
   [/I\(G([0-9]+)\|(.+)\)/m, oneReplace], 
-//	cases where we have C1,C2,... (these are cluster #s) -- drop the “C”
-//	C:SAMP:I(C1,C2|X) ⇒ f(X) 1 vs 2
+//	cases where we have C1,C2,... (these are cluster #s) -- drop the 'C'
+//	C:SAMP:I(C1,C2|X) ==> f(X) 1 vs 2
   [/I\(C([0-9]+),C([0-9]+)\|(.+)\)/m, twoReplace], 
-//	C:SAMP:I(C1|X) ⇒ f(X) 1
+//	C:SAMP:I(C1|X) ==> f(X) 1
   [/I\(C([0-9]+)\|(.+)\)/m, oneReplace], 
 //	pathologic_T, pathologic_N, pathologic_M, WHO_class
   [/I\((.+),(.+)\|(.+)\)/m, twoReplace], 
@@ -94,19 +95,19 @@ function getLength(start, end) {
 var debugCNVRCounts = [0, 0, 0, 0, 0, 0];
 // Gistic and GisticArm features
 // N:CNVR:Xq:chrX:60600000:155270560::SKCM-All_Lymph_Node_GisticArm_d
-//    ⇒ Xq  (Gistic Arm)
+//    ==> Xq  (Gistic Arm)
 // N:CNVR:Xq28:chrX:150021680:150280252::SKCM-All_Regional_Metastases_Gistic_ROI_r_amp
-//    ⇒ Xq28 Amplification (Gistic, continuous)
+//    ==> Xq28 Amplification (Gistic, continuous)
 // N:CNVR:Xq28:chrX:150021680:150280252::SKCM-All_Regional_Metastases_Gistic_ROI_d_del
-//    ⇒ Xq28 Deletion (Gistic, discrete)
+//    ==> Xq28 Deletion (Gistic, discrete)
 
 // Resegmented features
 // N:CNVR:Xq22.2:chrX:60600000:155270560
-//    ⇒ chrX:60,600,000-155,270,560 (95MB, Xq22.2)
+//    ==> chrX:60,600,000-155,270,560 (95MB, Xq22.2)
 // N:CNVR:8q24:chr8:138862000:140900999::
-//    ⇒ chr8:138,862,000-140,900,999 (2MB, 8q24)
+//    ==> chr8:138,862,000-140,900,999 (2MB, 8q24)
 // N:CNVR:SRGAP2:chr1:158887000:158888999::
-//    ⇒ chr1:158,887,000-158,888,999 (2kb, SRGAP2)
+//    ==> chr1:158,887,000-158,888,999 (2kb, SRGAP2)
 var getCNVRLabel = function(doc) {
   if (doc["code"]) {
     if (-1 < doc["code"].indexOf('GisticArm')) {

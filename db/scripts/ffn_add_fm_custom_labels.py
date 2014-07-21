@@ -1,8 +1,12 @@
 '''
 Created on Jun 4, 2014
 
-usage: add_fm_custom_labels.py --host <host url> --port <port --db <database name> --tumor <tumopr type> --root <root of feature matrix directories>
-NOTE: --db will generally be equal to --tumor
+usage: add_fm_custom_labels.py --host <host url> --port <port> --db <database name> --tumor <tumor type> --root <root of feature matrix directories> 
+    or
+usage: add_fm_custom_labels.py --host <host url> --port <port> --db <database name> --f <feature matrix> 
+NOTE: --tumor will generally be equal to --db and will default to it if not specified
+NOTE: second usage is to be run as part of full script to generate and update the feature matrix in mongodb
+NOTE: if the --f option is used, the --root directory will be set to ../.. relative to the file's directory
 NOTE: --root must not end with a '/'
 
 @author: michael
@@ -147,11 +151,16 @@ def main():
     parser.add_argument("--host", required=True, help="MongoDB host name")
     parser.add_argument("--port", required=True, type=int, help="MongoDB port")
     parser.add_argument("--db", required=True, help="Database name")
-    parser.add_argument("--tumor", required=True, help="Tumor type")
-    parser.add_argument("--root", required=True, help="Root path to search for FFN custom files")
+    parser.add_argument("--tumor", help="Tumor type, will default to --db")
+    parser.add_argument("--root", help="Root path to search for FFN custom files")
+    parser.add_argument("--f", help="Path of feature matrix, used to set --root for FFN custom files")
     parser.add_argument("--dir", default="aux", help="directory to look for FFN custom files")
     parser.add_argument("--loglevel", default="INFO", help="Logging Level")
     args = parser.parse_args()
+    if not args.tumor:
+        args.tumor = args.db
+    if not args.root:
+        args.root = os.path.dirname(os.path.dirname(os.path.dirname(args.f)))
     configure_logging(args.loglevel.upper())
 
     logging.info('starting add custom labels to feature matrix:\n\t%s' % (args))

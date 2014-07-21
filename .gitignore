@@ -20,6 +20,7 @@ dist
 .sass-cache
 app/components
 app/data
+db/sh
 python
 app/bower_components
 npm-debug.log

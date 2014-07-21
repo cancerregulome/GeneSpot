@@ -117,6 +117,9 @@ def process_import(config_json):
             execute_javascript("featurematrix_fill_unid.js", im)
             execute_javascript("featurematrix_mutated_samples.js", im)
             execute_javascript("featurematrix_verify_entries.js", im)
+            execute_javascript("ffn_update_fm_with_ffn_lookup.js", im)
+            execute_python("ffn_add_fm_custom_labels.py", im)
+            execute_javascript("generate_stats_var_lookup.js", im)
 
         if "mutation_summary" in im_collections:
             im["file"] = im_collections["mutation_summary"]

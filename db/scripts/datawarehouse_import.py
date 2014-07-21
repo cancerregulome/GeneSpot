@@ -19,38 +19,38 @@ Usage:
     python datawarehouse_import.py --config_file=/path/to/local/datawarehouse_import.json
 
 Requires config_file to be passed a file containing a JSON structure similar to the following:
-    {
-        "databases": {
-            "arbitrary_db_pointer_1": {
-                "vendor": "mongodb",
-                "host": "localhost",
-                "port": 4321
-            },
-            "arbitrary_db_pointer_2": {
-                "vendor": "mongodb",
-                "host": "localhost",
-                "port": 1234
-            }
-        },
-        "lookups_db": "arbitrary_db_pointer_2",
-        "imports": [
-            {
-                "tumor_type": "XYZ",
-                "database": "arbitrary_db_pointer_1",
-                "collections": {
-                    "feature_matrix": "/path/to/local/fmx/file",
-                    "mutation_summary": "/path/to/local/mut_sum/file",
-                    "copy_number_gistic": "/path/to/local/cn_gistic/file",
-                    "mutsig_rankings": "/path/to/local/mutsig_rankings/sig_genes.txt"
-                },
-                "annotations": {
-                    "CNVR": "/path/to/local/fmx/annotations/cnvr_file",
-                    "METH": "/path/to/local/fmx/annotations/meth_file",
-                    "RPPA": "/path/to/local/fmx/annotations/rppa_file"
-                }
-            }
-        ]
+{
+  "databases": {
+    "arbitrary_db_pointer_1": {
+      "vendor": "mongodb",
+      "host": "localhost",
+      "port": 4321
+    },
+    "arbitrary_db_pointer_2": {
+      "vendor": "mongodb",
+      "host": "localhost",
+      "port": 1234
     }
+  },
+  "lookups_db": "arbitrary_db_pointer_2",
+  "imports": [
+    {
+      "tumor_type": "XYZ",
+      "database": "arbitrary_db_pointer_1",
+      "collections": {
+        "feature_matrix": "/path/to/local/fmx/file",
+        "mutation_summary": "/path/to/local/mut_sum/file",
+        "copy_number_gistic": "/path/to/local/cn_gistic/file",
+        "mutsig_rankings": "/path/to/local/mutsig_rankings/sig_genes.txt"
+      },
+      "annotations": {
+        "CNVR": "/path/to/local/fmx/annotations/cnvr_file",
+        "METH": "/path/to/local/fmx/annotations/meth_file",
+        "RPPA": "/path/to/local/fmx/annotations/rppa_file"
+      }
+    }
+  ]
+}
 '''
 
 def execute_python(script_path, spec):

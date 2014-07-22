@@ -33,7 +33,7 @@ var cnt_label_not_exists = db["feature_matrix"].find({ "label": not_exists }).co
 
 var db_name = db["_name"];
 var pretty_print = function(msg) {
-    var dtFmt = (new Date()).toLocaleFormat("%Y-%m-%d %H:%M:%S,000");
+    var dtFmt = (new Date()).toString();
     print("[INFO] " + dtFmt  + " - featurematrix_verify_entries(" + db_name + ") - " + msg);
 };
 

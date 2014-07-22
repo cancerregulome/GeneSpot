@@ -9,7 +9,7 @@ Usage:
 var lookups_db = connect(lookups_db_uri);
 var db_name = db["_name"];
 var pretty_print = function(msg) {
-    var dtFmt = (new Date()).toLocaleFormat("%Y-%m-%d %H:%M:%S,000");
+    var dtFmt = (new Date()).toString();
     print("[INFO] " + dtFmt  + " - lookups_aggregate_clinical_variables(" + db_name + ") - " + msg);
 };
 

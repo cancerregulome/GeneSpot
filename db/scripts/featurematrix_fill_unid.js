@@ -65,7 +65,7 @@ var UNID_generators = {
 };
 
 for (var src in UNID_generators) {
-    var dtFmt = (new Date()).toLocaleFormat("%Y-%m-%d %H:%M:%S,000");
+    var dtFmt = (new Date()).toString();
     print("[INFO] " + dtFmt  + " - featurematrix_fill_unid(" + db_name + "):" + src + ":" + db["feature_matrix"].find({ "source": src }).count());
 
     var unid_generator = UNID_generators[src];

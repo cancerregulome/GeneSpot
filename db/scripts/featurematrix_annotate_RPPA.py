@@ -8,7 +8,7 @@ import logging
 import itertools
 
 from utilities import configure_logging
-from annotate_features_with_genes import collect_tags
+from featurematrix_annotate_CNVR import collect_tags
 
 # this script parses antibody annotations files produced by TCGA
 # it uses (column 3) for antibody ID and (column 1) for gene names

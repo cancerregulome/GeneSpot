@@ -2,26 +2,23 @@
 
 import argparse
 import csv
-import os
 import pymongo
 import logging
-import itertools
 
 from utilities import configure_logging
-from featurematrix_annotate_CNVR import collect_tags
 
-# this script parses antibody annotations files produced by TCGA
-# it uses (column 3) for antibody ID and (column 1) for gene names
-# and annotates a mongo (NOSQL) database with the matching 'antibody' in the feature_matrix collection
+# this script parses methylation annotation files produced by Illumina
+# it uses (column 0) for probe ID and (column 21) for gene names
+# and annotates a mongo (NOSQL) database with the matching 'geneRefs' in the feature_matrix collection
 #
-# feature matrix file (to example antibody annotations data):
-# IlmnID	CHR	MAPINFO	UCSC_RefGene_Name	UCSC_RefGene_Accession	UCSC_RefGene_Group	UCSC_CpG_Islands_Name	Relation_to_UCSC_CpG_Island
-# cg00035864	Y	8553009	TTTY18	NR_001550	TSS1500
-# cg00050873	Y	9363356	TSPY4;FAM197Y2	NM_001164471;NR_001553	Body;TSS1500	chrY:9363680-9363943	N_Shore
-# cg00061679	Y	25314171	DAZ1;DAZ4;DAZ4	NM_004081;NM_020420;NM_001005375	Body;Body;Body
-# cg00063477	Y	22741795	EIF1AY	NM_004681	Body	chrY:22737825-22738052	S_Shelf
-# cg00121626	Y	21664296	BCORL2	NR_002923	Body	chrY:21664481-21665063	N_Shore
-# cg00212031	Y	21239348	TTTY14	NR_001543	TSS200	chrY:21238448-21240005	Island
+# annotation file:
+# IlmnID	Name	AddressA_ID	...	UCSC_RefGene_Name	UCSC_RefGene_Accession	UCSC_RefGene_Group	UCSC_CpG_Islands_Name	Relation_to_UCSC_CpG_Island	...
+# cg00035864	cg00035864	8553009	...	TTTY18	NR_001550	TSS1500
+# cg00050873	cg00050873	9363356	...	TSPY4;FAM197Y2	NM_001164471;NR_001553	Body;TSS1500	chrY:9363680-9363943	N_Shore
+# cg00061679	cg00061679	25314171	...	DAZ1;DAZ4;DAZ4	NM_004081;NM_020420;NM_001005375	Body;Body;Body
+# cg00063477	cg00063477	22741795	...	EIF1ANM_004681	Body	chrY:22737825-22738052	S_Shelf
+# cg00121626	cg00121626	21664296	...	BCORL2	NR_002923	Body	chrY:21664481-21665063	N_Shore
+# cg00212031	cg00212031	21239348	...	TTTY14	NR_001543	TSS200	chrY:21238448-21240005	Island
 #
 # example METH feature IDs:
 # N:METH:NFYC:chr1:41218983:::cg07387734_Body
@@ -44,16 +41,18 @@ def extract_tags_by_id(filename):
         skipcount = 0
         r_by_id = {}
         for row in csvreader:
-            if len(row) >= 3:
-                feature_id = row[0]
-                count = row[1]
+            if len(row) >= 22:
+                probe_id = row[0]
+                count = row[2]
                 uniqGenes = []
-                if count > 0:
-                    refGenes = row[2].split(";")
-                    uniqGenes = filter(None, list(set(refGenes)))
+                if count == 0 or not row[21]:
+                    skipcount += 1
+                    continue
 
-                logging.debug("%s:%s:%s" % (feature_id, refGenes, uniqGenes))
-                if len(uniqGenes) > 0: r_by_id[feature_id] = uniqGenes
+                refGenes = row[21].split(";")
+                uniqGenes = filter(None, list(set(refGenes)))
+                logging.debug("%s:%s:%s" % (probe_id, refGenes, uniqGenes))
+                if len(uniqGenes) > 0: r_by_id[probe_id] = uniqGenes
             else:
                 skipcount += 1
 
@@ -64,23 +63,24 @@ def find_and_modify(collection, tags_by_id):
     count = 0
     skipcount = 0
     for doc in collection.find({ "source": "METH", "probe": { "$exists": True } }, { "values": False }):
-        if "id" in doc:
-            feature_id = str(doc["id"])
-            if feature_id in tags_by_id:
-                tags = tags_by_id[feature_id]
+        if "probe" in doc:
+            probe_id = str(doc["probe"])
+            if probe_id in tags_by_id:
+                tags = tags_by_id[probe_id]
                 if not tags is None:
                     collection.find_and_modify({ "_id": doc["_id"] }, { "$set":{ "refGenes": tags }})
+                    count += 1
                 else:
-                    logging.warning("skipping:tags not found:%s" % feature_id)
+                    logging.debug("skipping:tags not found:%s" % probe_id)
                     skipcount += 1
             else:
-                logging.debug("skipping:feature_id not found:%s" % feature_id)
+                logging.debug("skipping:probe_id not found:%s" % probe_id)
                 skipcount += 1
         else:
-            logging.warning("skipping:feature_id not in doc:%s" % str(doc))
+            logging.warning("skipping:probe_id not in doc:%s" % str(doc))
             skipcount += 1
 
-        if count > 0 and count % 1000 == 0: logging.info("update [%s]" % count)
+        if count > 0 and count % 10000 == 0: logging.info("update [%s]" % count)
 
     logging.info("total count=%s [skip=%s]" % (count, skipcount))
 

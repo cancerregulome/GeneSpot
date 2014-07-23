@@ -11,22 +11,22 @@ from utilities import configure_logging
 from featurematrix_annotate_CNVR import collect_tags
 
 # this script parses antibody annotations files produced by TCGA
-# it uses (column 3) for antibody ID and (column 1) for gene names
+# it uses (column 2) for antibody ID and (column 1) for gene names
 # and annotates a mongo (NOSQL) database with the matching 'antibody' in the feature_matrix collection
 #
 # feature matrix file (to
 # example antibody annotations data:
-# Gene Name       Array data file names   Composite Element REF
-# YWHAB   14-3-3_beta-R-V_GBL9029762      14-3-3_beta
-# YWHAE   14-3-3_epsilon-M-C_GBL9029920   14-3-3_epsilon
-# YWHAZ   14-3-3_zeta-R-V_GBL9029763      14-3-3_zeta
-# EIF4EBP1        4E-BP1-R-V_GBL9029764   4E-BP1
-# EIF4EBP1        4E-BP1_pS65-R-V_GBL9029766      4E-BP1_pS65
-# EIF4EBP1        4E-BP1_pT37_T46-R-V_GBL9029765  4E-BP1_pT37_T46
-# EIF4EBP1        4E-BP1_pT70-R-V_GBL9029970      4E-BP1_pT70
-# AKT1 AKT2 AKT3  Akt-R-V_GBL9029961      Akt
-# AKT1 AKT2 AKT3  Akt_pS473-R-V_GBL9029772        Akt_pS473
-# AKT1 AKT2 AKT3  Akt_pT308-R-V_GBL9029773        Akt_pT308
+# Gene Name       Composite Element REF
+# YWHAB   14-3-3_beta
+# YWHAE   14-3-3_epsilon
+# YWHAZ   14-3-3_zeta
+# EIF4EBP1        4E-BP1
+# EIF4EBP1        4E-BP1_pS65
+# EIF4EBP1        4E-BP1_pT37_T46
+# EIF4EBP1        4E-BP1_pT70
+# AKT1 AKT2 AKT3  Akt
+# AKT1 AKT2 AKT3  Akt_pS473
+# AKT1 AKT2 AKT3  Akt_pT308
 #
 # example RPPA feature IDs:
 # N:RPPA:YWHAB:chr20:43514317:43537173:+:14-3-3_beta
@@ -43,7 +43,7 @@ def extract_tags_by_id(filename):
 
         r_by_id = {}
         for row in csvreader:
-            r_by_id[row[2]] = row[0].split(" ")
+            r_by_id[row[1]] = row[0].split(" ")
         return r_by_id
 
 def find_and_modify(collection, tags_by_id):

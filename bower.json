@@ -17,7 +17,7 @@
     "visquick": "~0.1.2",
     "jsPlumb": "git://github.com/sporritt/jsPlumb.git#1.5.4",
     "colorbrewer": "git://github.com/undashes/colorbrewer.git",
-    "stacksvis": "git://github.com/cancerregulome/StacksVis#improving_layout",
+    "stacksvis": "git://github.com/cancerregulome/Resort#260ea4d9b58c08b24d8ad24e938c366fda7d34c3",
     "base64": "git://github.com/carlo/jquery-base64",
     "carve": "~0.0.7",
     "x2js": "*",

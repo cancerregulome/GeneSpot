@@ -365,7 +365,8 @@ define([
                     seqpeek_data.push({
                         variants: variants,
                         tumor_type: tumor_type,
-                        is_summary_track: false
+                        is_summary_track: false,
+                        y_axis_type: this.sample_track_type == "sample_plot" ? "lin" : "log2"
                     });
                 }, this);
 
@@ -643,7 +644,7 @@ define([
                     track_obj.region_track_svg
                         .attr("transform", "translate(0," + (variant_track_height) + ")");
 
-                    this.__render_scales(track_obj.variant_track_svg, total_track_height, track_instance.statistics);
+                    this.__render_scales(track_obj.variant_track_svg, total_track_height, track_instance.statistics, track_obj.y_axis_type);
                 }, this);
 
                 var regions_start_coordinate = seqpeek.getRegionMetadata().start_coordinate;
@@ -679,9 +680,11 @@ define([
                     .attr("transform", "translate(" + Y_AXIS_SCALE_WIDTH + ",0)");
             },
 
-            __render_scales: function(track_selector, total_track_height, track_statistics) {
+            __render_scales: function(track_selector, total_track_height, track_statistics, scale_type_label) {
                 var right = Y_AXIS_SCALE_WIDTH - 10;
                 var scale_start = -(REGION_TRACK_HEIGHT + SAMPLE_PLOT_TRACK_STEM_HEIGHT);
+                var type_label_x = 20.0;
+                var type_label_y = scale_start + 15.0;
 
                 var axis = track_selector
                     .append("svg:g")
@@ -742,6 +745,11 @@ define([
                         return d.text;
                     })
                     .style("text-anchor", "end");
+
+                axis.append("svg:text")
+                    .attr("x", type_label_x)
+                    .attr("y", type_label_y)
+                    .text(scale_type_label);
             },
 
             __find_maximum_samples_in_location: function(mutation_data) {
@@ -1000,7 +1008,8 @@ define([
                     variants: all_variants,
                     tumor_type: "COMBINED",
                     track_type: "bar_plot",
-                    is_summary_track: true
+                    is_summary_track: true,
+                    y_axis_type: "log2"
                 };
             },
 

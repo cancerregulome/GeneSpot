@@ -147,18 +147,8 @@ define([
                     else {
                         this.sample_track_type_user_setting = "bar_plot";
                     }
+                    this.__update_scaling_button_label();
                     this.__render();
-                },
-
-                "click .btn.seqpeek-toggle-genomic": function(e) {
-                    if (this.current_view_mode == DISPLAY_MODES.PROTEIN) {
-                        this.current_view_mode = DISPLAY_MODES.ALL;
-                    }
-                    else {
-                        this.current_view_mode = DISPLAY_MODES.PROTEIN;
-                    }
-
-                    this.__preprocess_data_and_render();
                 },
 
                 "click .add-new-list": function() {
@@ -174,7 +164,7 @@ define([
                 this.selected_bar_plot_color_by = COLOR_BY_CATEGORIES_FOR_BAR_PLOT["Mutation Type"];
 
                 this.sample_track_type = "sample_plot";
-                this.sample_track_type_user_setting = null;
+                this.sample_track_type_user_setting = this.sample_track_type;
 
                 this.current_view_mode = DISPLAY_MODES.PROTEIN;
 
@@ -247,6 +237,7 @@ define([
                 }));
 
                 this.__update_sample_list_dropdown();
+                this.__update_scaling_button_label();
 
                 this.$el.find(".sample-list-operations").html(this.sample_list_op_view.render().el);
 
@@ -365,7 +356,8 @@ define([
                     seqpeek_data.push({
                         variants: variants,
                         tumor_type: tumor_type,
-                        is_summary_track: false
+                        is_summary_track: false,
+                        y_axis_type: this.sample_track_type_user_setting == "sample_plot" ? "lin" : "log2"
                     });
                 }, this);
 
@@ -398,10 +390,6 @@ define([
                 this.maximum_samples_in_location = this.__find_maximum_samples_in_location(seqpeek_data);
                 if (this.maximum_samples_in_location >= this.options.bar_plot_threshold) {
                     this.sample_track_type = "bar_plot";
-                }
-
-                if (this.sample_track_type_user_setting === null) {
-                    this.sample_track_type_user_setting = this.sample_track_type;
                 }
 
                 this.__render_tracks(seqpeek_data, region_data, protein_data, seqpeek_tick_track_element, seqpeek_domain_track_element);
@@ -643,7 +631,7 @@ define([
                     track_obj.region_track_svg
                         .attr("transform", "translate(0," + (variant_track_height) + ")");
 
-                    this.__render_scales(track_obj.variant_track_svg, total_track_height, track_instance.statistics);
+                    this.__render_scales(track_obj.variant_track_svg, total_track_height, track_instance.statistics, track_obj.y_axis_type);
                 }, this);
 
                 var regions_start_coordinate = seqpeek.getRegionMetadata().start_coordinate;
@@ -679,9 +667,23 @@ define([
                     .attr("transform", "translate(" + Y_AXIS_SCALE_WIDTH + ",0)");
             },
 
-            __render_scales: function(track_selector, total_track_height, track_statistics) {
+            __render_scales: function(track_selector, total_track_height, track_statistics, scale_type_label) {
+                if (track_statistics.max_samples_in_location <= 2) {
+                    this.__render_scales_minimal(track_selector, total_track_height, track_statistics, scale_type_label);
+                }
+                else {
+                    this.__render_scales_full(track_selector, total_track_height, track_statistics, scale_type_label);
+                }
+            },
+
+            __render_scales_full: function(track_selector, total_track_height, track_statistics, scale_type_label) {
+                var y_axis_label_font_size = 10;
+                var y_axis_label_x = 10;
+
                 var right = Y_AXIS_SCALE_WIDTH - 10;
                 var scale_start = -(REGION_TRACK_HEIGHT + SAMPLE_PLOT_TRACK_STEM_HEIGHT);
+                var type_label_x = 20.0;
+                var type_label_y = scale_start + 15.0;
 
                 var axis = track_selector
                     .append("svg:g")
@@ -742,6 +744,59 @@ define([
                         return d.text;
                     })
                     .style("text-anchor", "end");
+
+                axis.append("svg:text")
+                    .attr("x", type_label_x)
+                    .attr("y", type_label_y)
+                    .text(scale_type_label);
+
+                axis.append("svg:text")
+                    .attr("x", 0)
+                    // Use the "y" attribute for horizontal positioning, because of the rotation.
+                    .attr("y", y_axis_label_x)
+                    .attr("transform", "rotate(-90)")
+                    .attr("font-size", y_axis_label_font_size)
+                    .text("Samples in location");
+            },
+
+            __render_scales_minimal: function(track_selector, total_track_height, track_statistics, scale_type_label) {
+                var y_axis_label_font_size = 10;
+                var y_axis_label_x = 10;
+
+                var right = Y_AXIS_SCALE_WIDTH - 10;
+                var scale_start = -(REGION_TRACK_HEIGHT + SAMPLE_PLOT_TRACK_STEM_HEIGHT);
+                var type_label_x = 20.0;
+                var type_label_y = scale_start + 30.0;
+
+                var axis = track_selector
+                    .append("svg:g")
+                    .attr("class", "y-axis")
+                    .attr("transform", "translate(0," + total_track_height + ")");
+
+                axis.append("svg:text")
+                    .attr("x", right - 15)
+                    .attr("y", -total_track_height + 10)
+                    .attr("font-size", y_axis_label_font_size)
+                    .text("max " + track_statistics.max_samples_in_location);
+
+                axis.append("svg:text")
+                    .attr("x", right - 15)
+                    .attr("y",  -total_track_height + 20)
+                    .attr("font-size", y_axis_label_font_size)
+                    .text("min " + track_statistics.min_samples_in_location);
+
+                axis.append("svg:text")
+                    .attr("x", type_label_x)
+                    .attr("y", type_label_y)
+                    .text(scale_type_label);
+
+                axis.append("svg:text")
+                    .attr("x", 0)
+                    // Use the "y" attribute for horizontal positioning, because of the rotation.
+                    .attr("y", y_axis_label_x)
+                    .attr("transform", "rotate(-90)")
+                    .attr("font-size", y_axis_label_font_size)
+                    .text("Samples");
             },
 
             __find_maximum_samples_in_location: function(mutation_data) {
@@ -1000,7 +1055,8 @@ define([
                     variants: all_variants,
                     tumor_type: "COMBINED",
                     track_type: "bar_plot",
-                    is_summary_track: true
+                    is_summary_track: true,
+                    y_axis_type: "log2"
                 };
             },
 
@@ -1103,6 +1159,18 @@ define([
                 this.$el.find(".new-list-name").val("");
 
                 this.samplelists.addSampleList(list_label, this.selected_patient_ids);
+            },
+
+            __update_scaling_button_label: function() {
+                var label;
+                if (this.sample_track_type_user_setting == "bar_plot") {
+                    label = "Use linear scale";
+                }
+                else {
+                    label = "Use log2 scale";
+                }
+
+                this.$(".btn.seqpeek-toggle-bars").text(label);
             }
         });
     });

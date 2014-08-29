@@ -28,6 +28,22 @@ function ($, _, Backbone,
             return this;
         },
 
+        getCurrentListAsMap: function() {
+            console.log("test");
+            var listid = this.$("li.active").text();
+
+            var found = this.collection.find(function(item) {
+                return item.get("label") == listid;
+            });
+
+            var samples = found.get("samples");
+
+            return _.reduce(samples, function(memo, sample_id) {
+                memo[sample_id] = true;
+                return memo;
+            }, {});
+        },
+
         __refresh: function() {
             var template_data = this.collection.map(function(model) {
                 var samples = model.get("samples");

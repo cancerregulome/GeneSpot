@@ -15,6 +15,11 @@ define([
               MutationsMapTpl, MutationsMapTableTpl,
               SampleListCaptionTpl
     ) {
+        var SAMPLE_HIGHLIGHT_MODES = {
+            ALL: 1,
+            HIGHLIGHT_SELECTED: 2
+        };
+
         var DISPLAY_MODES = {
             ALL: 1,
             PROTEIN: 2
@@ -67,6 +72,8 @@ define([
 
         var LOLLIPOP_COLOR_SCALE = d3.scale.category20();
 
+        var NOT_SELECTED_DATA_POINT_COLOR = "rgba(170,170,170,0.2)";
+
         var COLOR_BY_CATEGORIES = {
             "Mutation Type": function(data_point) {
                 return MUTATION_TYPE_COLOR_MAP[data_point[TYPE_FIELD_NAME]];
@@ -77,6 +84,34 @@ define([
             "Protein Change": function(data_point) {
                 var id = data_point[AMINO_ACID_MUTATION_FIELD_NAME] + "-" + data_point[AMINO_ACID_WILDTYPE_FIELD_NAME];
                 return LOLLIPOP_COLOR_SCALE(id);
+            }
+        };
+
+        var COLOR_BY_CATEGORIES_HIGHLIGHT_SELECTED = {
+            "Mutation Type": function(data_point) {
+                if (_.has(this.selected_samples_map, data_point["patient_id"])) {
+                    return MUTATION_TYPE_COLOR_MAP[data_point[TYPE_FIELD_NAME]];
+                }
+                else {
+                    return NOT_SELECTED_DATA_POINT_COLOR;
+                }
+            },
+            "DNA Change": function(data_point) {
+                if (_.has(this.selected_samples_map, data_point["patient_id"])) {
+                    return LOLLIPOP_COLOR_SCALE(data_point[DNA_CHANGE_FIELD_NAME]);
+                }
+                else {
+                    return NOT_SELECTED_DATA_POINT_COLOR;
+                }
+            },
+            "Protein Change": function(data_point) {
+                if (_.has(this.selected_samples_map, data_point["patient_id"])) {
+                    var id = data_point[AMINO_ACID_MUTATION_FIELD_NAME] + "-" + data_point[AMINO_ACID_WILDTYPE_FIELD_NAME];
+                    return LOLLIPOP_COLOR_SCALE(id);
+                }
+                else {
+                    return NOT_SELECTED_DATA_POINT_COLOR;
+                }
             }
         };
 
@@ -99,7 +134,6 @@ define([
 
             events: {
                 "click .seqpeek-gene-selector li a": function(e) {
-                    console.debug("seqpeek/gene-selector:" + $(e.target).data("id"));
                     this.selected_gene = $(e.target).data("id");
                     this.$el.find(".selected-gene").html(this.selected_gene);
 
@@ -112,8 +146,6 @@ define([
                     this.selected_group_by = this.__get_current_group_by(group_by);
                     this.selected_bar_plot_color_by = COLOR_BY_CATEGORIES_FOR_BAR_PLOT[group_by];
 
-                    console.debug("seqpeek/group-by-selector:" + group_by);
-
                     this.$(".dropdown-menu.group_by_selector").find(".active").removeClass("active");
                     $(e.target).parent("li").addClass("active");
 
@@ -122,14 +154,26 @@ define([
 
                 "click .dropdown-menu.color_by_selector a": function(e) {
                     var color_by = $(e.target).data("id");
-                    this.selected_color_by = COLOR_BY_CATEGORIES[color_by];
-
-                    console.debug("seqpeek/color-by-selector:" + color_by);
+                    this.selected_color_by = this.__get_current_sample_color_by(color_by);
 
                     this.$(".dropdown-menu.color_by_selector").find(".active").removeClass("active");
                     $(e.target).parent("li").addClass("active");
 
                     this.__render();
+                },
+
+                "click .btn.seqpeek-samplelist-highlight": function(e) {
+                    if (this.sample_highlight_mode == SAMPLE_HIGHLIGHT_MODES.ALL) {
+                        this.sample_highlight_mode = SAMPLE_HIGHLIGHT_MODES.HIGHLIGHT_SELECTED
+                    }
+                    else {
+                        this.sample_highlight_mode = SAMPLE_HIGHLIGHT_MODES.ALL
+                    }
+
+                    this.__update_sample_highlight_button_label();
+                    this.__update_settings();
+                    this.__render();
+
                 },
 
                 "click .btn.seqpeek-zoom-enable": function(e) {
@@ -159,14 +203,15 @@ define([
             initialize: function () {
                 this.model = this.options["models"];
 
-                this.selected_group_by = this.__get_current_group_by("Mutation Type");
-                this.selected_color_by = COLOR_BY_CATEGORIES["Mutation Type"];
-                this.selected_bar_plot_color_by = COLOR_BY_CATEGORIES_FOR_BAR_PLOT["Mutation Type"];
-
                 this.sample_track_type = "sample_plot";
                 this.sample_track_type_user_setting = this.sample_track_type;
 
+                this.sample_highlight_mode = SAMPLE_HIGHLIGHT_MODES.ALL;
                 this.current_view_mode = DISPLAY_MODES.PROTEIN;
+
+                this.selected_group_by = this.__get_current_group_by("Mutation Type");
+                this.selected_color_by = this.__get_current_sample_color_by("Mutation Type");
+                this.selected_bar_plot_color_by = COLOR_BY_CATEGORIES_FOR_BAR_PLOT["Mutation Type"];
 
                 this.selected_patient_ids = [];
 
@@ -176,10 +221,27 @@ define([
                     collection: this.samplelists
                 });
 
+                this.selected_samples_map = null;
+
                 this.sample_list_op_view.on("list:union", this.__sample_list_union, this);
 
                 this.samplelists.on("add", this.__update_stored_samplelists, this);
                 this.samplelists.on("remove", this.__update_stored_samplelists, this);
+            },
+
+            __update_settings: function() {
+                this.selected_group_by = this.__get_current_group_by("Mutation Type");
+                this.selected_color_by = this.__get_current_sample_color_by("Mutation Type");
+                this.selected_samples_map = this.sample_list_op_view.getCurrentListAsMap();
+            },
+
+            __get_current_sample_color_by: function(color_by_key) {
+                if (this.sample_highlight_mode == SAMPLE_HIGHLIGHT_MODES.ALL) {
+                    return COLOR_BY_CATEGORIES[color_by_key];
+                }
+                else {
+                    return COLOR_BY_CATEGORIES_HIGHLIGHT_SELECTED[color_by_key];
+                }
             },
 
             __get_current_group_by: function(group_by_key) {
@@ -237,6 +299,7 @@ define([
                 }));
 
                 this.__update_sample_list_dropdown();
+                this.__update_sample_highlight_button_label();
                 this.__update_scaling_button_label();
 
                 this.$el.find(".sample-list-operations").html(this.sample_list_op_view.render().el);
@@ -419,7 +482,7 @@ define([
                     sample_plot_tracks: {
                         height: VARIANT_TRACK_MAX_HEIGHT,
                         stem_height: 30,
-                        color_scheme: this.selected_color_by
+                        color_scheme: _.bind(this.selected_color_by, this)
                     },
                     region_track: {
                         height: REGION_TRACK_HEIGHT
@@ -466,7 +529,7 @@ define([
                     sample_plot_tracks: {
                         height: VARIANT_TRACK_MAX_HEIGHT,
                         stem_height: 30,
-                        color_scheme: this.selected_color_by
+                        color_scheme: _.bind(this.selected_color_by, this)
                     },
                     region_track: {
                         height: REGION_TRACK_HEIGHT
@@ -1171,6 +1234,21 @@ define([
                 }
 
                 this.$(".btn.seqpeek-toggle-bars").text(label);
+            },
+
+            __update_sample_highlight_button_label: function() {
+                var label;
+
+                if (this.sample_highlight_mode == SAMPLE_HIGHLIGHT_MODES.ALL) {
+                    label = "Enable highlight";
+                }
+                else {
+                    label = "Disable highlight";
+                }
+
+                this.$(".btn.seqpeek-samplelist-highlight").text(label);
+
+                console.log(this.samplelists);
             }
         });
     });

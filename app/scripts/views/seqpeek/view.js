@@ -668,6 +668,15 @@ define([
             },
 
             __render_scales: function(track_selector, total_track_height, track_statistics, scale_type_label) {
+                if (track_statistics.max_samples_in_location <= 2) {
+                    this.__render_scales_minimal(track_selector, total_track_height, track_statistics, scale_type_label);
+                }
+                else {
+                    this.__render_scales_full(track_selector, total_track_height, track_statistics, scale_type_label);
+                }
+            },
+
+            __render_scales_full: function(track_selector, total_track_height, track_statistics, scale_type_label) {
                 var y_axis_label_font_size = 10;
                 var y_axis_label_x = 10;
 
@@ -748,6 +757,46 @@ define([
                     .attr("transform", "rotate(-90)")
                     .attr("font-size", y_axis_label_font_size)
                     .text("Samples in location");
+            },
+
+            __render_scales_minimal: function(track_selector, total_track_height, track_statistics, scale_type_label) {
+                var y_axis_label_font_size = 10;
+                var y_axis_label_x = 10;
+
+                var right = Y_AXIS_SCALE_WIDTH - 10;
+                var scale_start = -(REGION_TRACK_HEIGHT + SAMPLE_PLOT_TRACK_STEM_HEIGHT);
+                var type_label_x = 20.0;
+                var type_label_y = scale_start + 30.0;
+
+                var axis = track_selector
+                    .append("svg:g")
+                    .attr("class", "y-axis")
+                    .attr("transform", "translate(0," + total_track_height + ")");
+
+                axis.append("svg:text")
+                    .attr("x", right - 15)
+                    .attr("y", -total_track_height + 10)
+                    .attr("font-size", y_axis_label_font_size)
+                    .text("max " + track_statistics.max_samples_in_location);
+
+                axis.append("svg:text")
+                    .attr("x", right - 15)
+                    .attr("y",  -total_track_height + 20)
+                    .attr("font-size", y_axis_label_font_size)
+                    .text("min " + track_statistics.min_samples_in_location);
+
+                axis.append("svg:text")
+                    .attr("x", type_label_x)
+                    .attr("y", type_label_y)
+                    .text(scale_type_label);
+
+                axis.append("svg:text")
+                    .attr("x", 0)
+                    // Use the "y" attribute for horizontal positioning, because of the rotation.
+                    .attr("y", y_axis_label_x)
+                    .attr("transform", "rotate(-90)")
+                    .attr("font-size", y_axis_label_font_size)
+                    .text("Samples");
             },
 
             __find_maximum_samples_in_location: function(mutation_data) {

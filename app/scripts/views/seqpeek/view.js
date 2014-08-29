@@ -147,18 +147,8 @@ define([
                     else {
                         this.sample_track_type_user_setting = "bar_plot";
                     }
+                    this.__update_scaling_button_label();
                     this.__render();
-                },
-
-                "click .btn.seqpeek-toggle-genomic": function(e) {
-                    if (this.current_view_mode == DISPLAY_MODES.PROTEIN) {
-                        this.current_view_mode = DISPLAY_MODES.ALL;
-                    }
-                    else {
-                        this.current_view_mode = DISPLAY_MODES.PROTEIN;
-                    }
-
-                    this.__preprocess_data_and_render();
                 },
 
                 "click .add-new-list": function() {
@@ -174,7 +164,7 @@ define([
                 this.selected_bar_plot_color_by = COLOR_BY_CATEGORIES_FOR_BAR_PLOT["Mutation Type"];
 
                 this.sample_track_type = "sample_plot";
-                this.sample_track_type_user_setting = null;
+                this.sample_track_type_user_setting = this.sample_track_type;
 
                 this.current_view_mode = DISPLAY_MODES.PROTEIN;
 
@@ -247,6 +237,7 @@ define([
                 }));
 
                 this.__update_sample_list_dropdown();
+                this.__update_scaling_button_label();
 
                 this.$el.find(".sample-list-operations").html(this.sample_list_op_view.render().el);
 
@@ -366,7 +357,7 @@ define([
                         variants: variants,
                         tumor_type: tumor_type,
                         is_summary_track: false,
-                        y_axis_type: this.sample_track_type == "sample_plot" ? "lin" : "log2"
+                        y_axis_type: this.sample_track_type_user_setting == "sample_plot" ? "lin" : "log2"
                     });
                 }, this);
 
@@ -399,10 +390,6 @@ define([
                 this.maximum_samples_in_location = this.__find_maximum_samples_in_location(seqpeek_data);
                 if (this.maximum_samples_in_location >= this.options.bar_plot_threshold) {
                     this.sample_track_type = "bar_plot";
-                }
-
-                if (this.sample_track_type_user_setting === null) {
-                    this.sample_track_type_user_setting = this.sample_track_type;
                 }
 
                 this.__render_tracks(seqpeek_data, region_data, protein_data, seqpeek_tick_track_element, seqpeek_domain_track_element);
@@ -1112,6 +1099,18 @@ define([
                 this.$el.find(".new-list-name").val("");
 
                 this.samplelists.addSampleList(list_label, this.selected_patient_ids);
+            },
+
+            __update_scaling_button_label: function() {
+                var label;
+                if (this.sample_track_type_user_setting == "bar_plot") {
+                    label = "Use linear scale";
+                }
+                else {
+                    label = "Use log2 scale";
+                }
+
+                this.$(".btn.seqpeek-toggle-bars").text(label);
             }
         });
     });

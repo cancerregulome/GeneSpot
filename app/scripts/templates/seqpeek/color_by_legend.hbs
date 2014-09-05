@@ -1,0 +1,22 @@
+{{#if items.length}}
+    <h4>Color Legend</h4>
+    <table width="" class="table table-bordered table-condensed">
+        <thead>
+        <tr>
+            <th>{{color_by_type}}</th>
+            <th>Color</th>
+        </tr>
+        </thead>
+        <tbody>
+        {{#each items}}
+            <tr>
+                <td>{{label}}</td>
+                <td style="background-color: {{color}}"></td>
+            </tr>
+        {{/each}}
+        </tbody>
+    </table>
+{{else}}
+    <h4>Color Legend</h4>
+    <h5 style="color: red;">No data...</h5>
+{{/if}}

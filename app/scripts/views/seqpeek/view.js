@@ -34,7 +34,8 @@ define([
 
         var VARIANT_TRACK_MAX_HEIGHT = 150;
         var TICK_TRACK_HEIGHT = 25;
-        var REGION_TRACK_HEIGHT = 10;
+        var REGION_TRACK_HEIGHT = 5;
+        var PROTEIN_DOMAIN_HEIGHT = 20;
         var PROTEIN_DOMAIN_TRACK_HEIGHT = 40;
         var VIEWPORT_WIDTH = 1000;
         var SAMPLE_PLOT_TRACK_STEM_HEIGHT = 30;
@@ -471,7 +472,6 @@ define([
                         percentOf: "NA"
                     }}));
 
-
                 _.each(seqpeek_data, function(track_obj) {
                     track_obj.target_element = _.first(this.$("#seqpeek-row-" + track_obj.tumor_type))
                 }, this);
@@ -489,7 +489,9 @@ define([
 
                 this.color_by_legend_view.setData(this.selected_color_by_key, this.selected_color_by.color_fn, this.selected_color_by.data_getter, summary_track_info.variants);
 
-                this.__render_tracks(seqpeek_data, region_data, protein_data, seqpeek_tick_track_element, seqpeek_domain_track_element);
+                var filtered_protein_domain_matches = this.__filter_protein_domain_matches(protein_data["matches"], "PFAM");
+
+                this.__render_tracks(seqpeek_data, region_data, protein_data, filtered_protein_domain_matches, seqpeek_tick_track_element, seqpeek_domain_track_element);
             },
 
             __build_seqpeek_config: function(region_array) {
@@ -519,11 +521,13 @@ define([
                     sample_plot_tracks: {
                         height: VARIANT_TRACK_MAX_HEIGHT,
                         stem_height: 30,
-                        //color_scheme: _.bind(this.selected_color_by.color_fn, this)
                         color_scheme: sample_plot_color_by_fn
                     },
                     region_track: {
-                        height: REGION_TRACK_HEIGHT
+                        height: REGION_TRACK_HEIGHT,
+                        color_scheme: {
+                            "exon": "#555555"
+                        }
                     },
                     protein_domain_tracks: {
                         source_key: "dbname",
@@ -532,7 +536,11 @@ define([
                             "PFAM": "lightgray",
                             "SMART": "darkgray",
                             "PROFILE": "gray"
-                        }
+                        },
+                        label: function(match) {
+                            return match["name"]
+                        },
+                        domain_height: PROTEIN_DOMAIN_HEIGHT
                     },
                     tick_track: {
                         height: TICK_TRACK_HEIGHT
@@ -600,9 +608,7 @@ define([
                 };
             },
 
-            __render_tracks: function(mutation_data, region_array, protein_data, seqpeek_tick_track_element, seqpeek_domain_track_element) {
-                console.debug("seqpeek/view.__render_tracks");
-
+            __render_tracks: function(mutation_data, region_array, protein_data, protein_domain_matches, seqpeek_tick_track_element, seqpeek_domain_track_element) {
                 var seqpeek_config = this.__build_seqpeek_config(region_array);
                 var seqpeek = SeqPeekBuilder.create(seqpeek_config);
 
@@ -611,7 +617,7 @@ define([
                     var track_elements_svg = d3.select(track_obj.target_element)
                         .append("svg")
                         .attr("width", TRACK_SVG_WIDTH)
-                        .attr("height", VARIANT_TRACK_MAX_HEIGHT + REGION_TRACK_HEIGHT)
+                        .attr("height", VARIANT_TRACK_MAX_HEIGHT + PROTEIN_DOMAIN_HEIGHT)
                         .attr("id", track_guid)
                         .style("pointer-events", "none");
 
@@ -659,32 +665,8 @@ define([
                         }
                     });
 
-                    track_obj.region_track_svg = region_track_g;
-                }, this);
-
-                var tick_track_g = d3.select(seqpeek_tick_track_element)
-                    .append("svg")
-                        .attr("width", TRACK_SVG_WIDTH)
-                        .attr("height", TICK_TRACK_HEIGHT)
-                        .style("pointer-events", "none")
-                    .append("svg:g")
-                        .call(this.__set_track_g_position);
-
-                seqpeek.addTickTrackToElement(tick_track_g);
-
-                if (this.current_view_mode == DISPLAY_MODES.PROTEIN) {
-                    var protein_domain_track_guid = "C" + vq.utils.VisUtils.guid();
-                    var protein_domain_track_g = d3.select(seqpeek_domain_track_element)
-                        .append("svg")
-                        .attr("width", TRACK_SVG_WIDTH)
-                        .attr("height", PROTEIN_DOMAIN_TRACK_HEIGHT)
-                        .attr("id", protein_domain_track_guid)
-                        .style("pointer-events", "none")
-                        .append("svg:g")
-                        .call(this.__set_track_g_position);
-
-                    seqpeek.addProteinDomainTrackToElement(protein_data["matches"], protein_domain_track_g, {
-                        guid: protein_domain_track_guid,
+                    seqpeek.addProteinDomainTrackToElement(protein_domain_matches, region_track_g, {
+                        guid: track_guid,
                         hovercard_content: {
                             "DB": function (d) {
                                 return d.dbname;
@@ -716,7 +698,19 @@ define([
                             }
                         }
                     });
-                }
+
+                    track_obj.region_track_svg = region_track_g;
+                }, this);
+
+                var tick_track_g = d3.select(seqpeek_tick_track_element)
+                    .append("svg")
+                        .attr("width", TRACK_SVG_WIDTH)
+                        .attr("height", TICK_TRACK_HEIGHT)
+                        .style("pointer-events", "none")
+                    .append("svg:g")
+                        .call(this.__set_track_g_position);
+
+                seqpeek.addTickTrackToElement(tick_track_g);
 
                 seqpeek.createInstances();
 
@@ -726,7 +720,7 @@ define([
 
                     track_instance.setHeightFromStatistics();
                     var variant_track_height = track_instance.getHeight();
-                    var total_track_height = variant_track_height + REGION_TRACK_HEIGHT;
+                    var total_track_height = variant_track_height + PROTEIN_DOMAIN_HEIGHT;
 
                     track_obj.variant_track_svg.attr("height", total_track_height);
                     track_obj.region_track_svg
@@ -1162,7 +1156,6 @@ define([
             },
 
             __parse_mutsig: function () {
-                console.debug("seqpeek/view.__parse_mutsig");
                 return _.reduce(this.model["mutsig"].get("items"), function (memo, feature) {
                     if (!_.has(memo, feature.cancer.toLowerCase())) {
                         memo[feature.cancer] = [];
@@ -1173,7 +1166,6 @@ define([
             },
 
             __load_protein_domains: function() {
-                console.debug("seqpeek/view.__load_protein_domains");
                 this.gene_to_uniprot_mapping = this.__find_protein_identifiers();
                 var protein_ids = _.values(this.gene_to_uniprot_mapping);
 
@@ -1197,7 +1189,6 @@ define([
             },
 
             __find_protein_identifiers: function() {
-                console.debug("seqpeek/view.__find_protein_identifiers");
                 var items = _.flatten(_.map(this.model["mutations"]["by_tumor_type"], function(model, tumor_type) {
                     return model.get("items");
                 }));
@@ -1212,6 +1203,12 @@ define([
                 }, {});
 
                 return gene_to_uniprot_mapping;
+            },
+
+            __filter_protein_domain_matches: function(match_array, dbname) {
+                return _.filter(match_array, function(match) {
+                    return match["dbname"] == dbname;
+                });
             },
 
             __enable_seqpeek_zoom: function() {

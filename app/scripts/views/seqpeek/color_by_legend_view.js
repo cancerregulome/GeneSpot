@@ -9,10 +9,7 @@ function ($, _, Backbone,
 ) {
     return Backbone.View.extend({
         setData: function(color_by_type, color_map, data_getter, data_array) {
-            var unique_rows = _.chain(data_array)
-                .unique(function(data_point) {
-                    return data_getter(data_point)
-                })
+            var keyed_rows = _.chain(data_array)
                 .map(function(data_point) {
                     return {
                         data_point: data_point,
@@ -21,12 +18,16 @@ function ($, _, Backbone,
                 })
                 .value();
 
-            var color_by_items = _.chain(unique_rows)
+            var color_by_items = _.chain(keyed_rows)
                 .map(function(row) {
+                    var color_result = color_map(row.data_point);
                     return {
-                        label: row.color_fn_key,
-                        color: color_map(row.data_point)
+                        label: color_result.label,
+                        color: color_result.color
                     };
+                })
+                .unique(function(d) {
+                    return d.label;
                 })
                 .value();
 

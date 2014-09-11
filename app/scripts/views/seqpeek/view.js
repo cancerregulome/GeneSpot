@@ -50,7 +50,29 @@ define([
         var UNIPROT_FIELD_NAME = "uniprot_id";
 
         var DNA_CHANGE_KEY_FN = function(data_point) {
-            return data_point[DNA_CHANGE_FIELD_NAME];
+            var id = data_point[DNA_CHANGE_FIELD_NAME];
+            var base_pairs = id.split("->");
+
+            // Single base substitution?
+            if (base_pairs[0] != "-" && base_pairs[0].length == 1 &&
+                base_pairs[1] != "-" && base_pairs[1].length == 1) {
+                return "SUBSTITUTION";
+            }
+            // Deletion?
+            else if (base_pairs[1] == "-") {
+                return "DELETION";
+            }
+            // Insertion of single base pair?
+            else if (base_pairs[0] == "-" && base_pairs[1].length == 1) {
+                return "INSERTION";
+            }
+            // Insertion of two or more base pairs?
+            else if (base_pairs[0] == "-" && base_pairs[1].length > 1) {
+                return "INSERTION+";
+            }
+            else {
+                return "UNKNOWN " + id;
+            }
         };
 
         var MUTATION_TYPE_KEY_FN = function(data_point) {
@@ -63,13 +85,13 @@ define([
 
         var GROUP_BY_CATEGORIES_FOR_PROTEIN_VIEW = {
             "Mutation Type": TYPE_FIELD_NAME,
-            "DNA Change": DNA_CHANGE_FIELD_NAME,
+            "DNA Change": DNA_CHANGE_KEY_FN,
             "Protein Change": PROTEIN_CHANGE_KEY_FN
         };
 
         var GROUP_BY_CATEGORIES_FOR_GENOMIC_VIEW = {
             "Mutation Type": TYPE_FIELD_NAME,
-            "DNA Change": DNA_CHANGE_FIELD_NAME,
+            "DNA Change": DNA_CHANGE_KEY_FN,
             "Protein Change": PROTEIN_CHANGE_KEY_FN
         };
 
@@ -79,6 +101,22 @@ define([
             Frame_Shift_Del: "gold",
             Frame_Shift_Ins: "gold",
             Missense_Mutation: "blue"
+        };
+
+        var TCGA_SIX_CATEGORIES = [
+            "#71C560",
+            "#9768C4",
+            "#98B8B8",
+            "#4F473D",
+            "#C1B14C",
+            "#B55381"
+        ];
+
+        var DNA_CHANGE_COLOR_MAP = {
+            "SUBSTITUTION": {label: "Substitution", color: TCGA_SIX_CATEGORIES[0]},
+            "DELETION":  {label: "Deletion", color:TCGA_SIX_CATEGORIES[1]},
+            "INSERTION": {label: "Insertion (single base pair)", color:TCGA_SIX_CATEGORIES[2]},
+            "INSERTION+": {label: "Insertion (multiple base pairs)", color: TCGA_SIX_CATEGORIES[3]}
         };
 
         var LOLLIPOP_COLOR_SCALE = d3.scale.category20();
@@ -92,25 +130,30 @@ define([
                 color_fn: function (data_point) {
                     var id = MUTATION_TYPE_KEY_FN(data_point);
                     if (_.has(MUTATION_TYPE_COLOR_MAP, id)) {
-                        return MUTATION_TYPE_COLOR_MAP[id];
+                        return {
+                            label: id,
+                            color: MUTATION_TYPE_COLOR_MAP[id]
+                        };
                     }
                     else {
-                        return UNKNOWN_TYPE_COLOR;
-
+                        return {
+                            label: id,
+                            color: UNKNOWN_TYPE_COLOR
+                        };
                     }
                 },
                 color_highlight_fn: function (data_point) {
                     if (_.has(this.selected_samples_map, data_point["patient_id"])) {
                         var id = MUTATION_TYPE_KEY_FN(data_point);
                         if (_.has(MUTATION_TYPE_COLOR_MAP, id)) {
-                            return MUTATION_TYPE_COLOR_MAP[id];
+                            return {label: id, color: MUTATION_TYPE_COLOR_MAP[id]};
                         }
                         else {
-                            return UNKNOWN_TYPE_COLOR;
+                            return {label: id, color: UNKNOWN_TYPE_COLOR};
                         }
                     }
                     else {
-                        return NOT_SELECTED_DATA_POINT_COLOR;
+                        return {label:id, color:NOT_SELECTED_DATA_POINT_COLOR};
                     }
                 }
             },
@@ -118,15 +161,25 @@ define([
                 data_getter: DNA_CHANGE_KEY_FN,
                 color_fn: function(data_point) {
                     var id = DNA_CHANGE_KEY_FN(data_point);
-                    return LOLLIPOP_COLOR_SCALE(id);
+                    if (_.has(DNA_CHANGE_COLOR_MAP, id)) {
+                        return DNA_CHANGE_COLOR_MAP[id];
+                    }
+                    else {
+                        return {label: id, color: UNKNOWN_TYPE_COLOR};
+                    }
                 },
                 color_highlight_fn: function(data_point) {
                     if (_.has(this.selected_samples_map, data_point["patient_id"])) {
                         var id = DNA_CHANGE_KEY_FN(data_point);
-                        return LOLLIPOP_COLOR_SCALE(id);
+                        if (_.has(DNA_CHANGE_COLOR_MAP, id)) {
+                            return DNA_CHANGE_COLOR_MAP[id];
+                        }
+                        else {
+                            return {label: id, color: UNKNOWN_TYPE_COLOR};
+                        }
                     }
                     else {
-                        return NOT_SELECTED_DATA_POINT_COLOR;
+                        return {label: "Not selected", color: NOT_SELECTED_DATA_POINT_COLOR};
                     }
                 }
             },
@@ -134,15 +187,15 @@ define([
                 data_getter: PROTEIN_CHANGE_KEY_FN,
                 color_fn: function(data_point) {
                     var id = PROTEIN_CHANGE_KEY_FN(data_point);
-                    return LOLLIPOP_COLOR_SCALE(id);
+                    return {label: id, color: LOLLIPOP_COLOR_SCALE(id)};
                 },
                 color_highlight_fn: function(data_point) {
                     if (_.has(this.selected_samples_map, data_point["patient_id"])) {
                         var id = PROTEIN_CHANGE_KEY_FN(data_point);
-                        return LOLLIPOP_COLOR_SCALE(id);
+                        return {label: id, color: LOLLIPOP_COLOR_SCALE(id)};
                     }
                     else {
-                        return NOT_SELECTED_DATA_POINT_COLOR;
+                        return {label: "Not selected", color: NOT_SELECTED_DATA_POINT_COLOR};
                     }
                 }
             }
@@ -504,8 +557,12 @@ define([
             },
 
             __build_seqpeek_config_for_protein_view: function(region_array) {
-                var sample_plot_color_by_fn = this.sample_highlight_mode == SAMPLE_HIGHLIGHT_MODES.ALL ?
+                var sample_plot_color_by = this.sample_highlight_mode == SAMPLE_HIGHLIGHT_MODES.ALL ?
                     _.bind(this.selected_color_by.color_fn, this) : _.bind(this.selected_color_by.color_highlight_fn, this);
+
+                var sample_plot_color_by_function = _.bind(function(d) {
+                    return sample_plot_color_by(d).color;
+                }, this);
 
                 return {
                     region_data: region_array,
@@ -521,7 +578,7 @@ define([
                     sample_plot_tracks: {
                         height: VARIANT_TRACK_MAX_HEIGHT,
                         stem_height: 30,
-                        color_scheme: sample_plot_color_by_fn
+                        color_scheme: sample_plot_color_by_function
                     },
                     region_track: {
                         height: REGION_TRACK_HEIGHT,

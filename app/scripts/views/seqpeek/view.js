@@ -6,6 +6,9 @@ define([
     "seqpeek/util/mini_locator",
     "views/seqpeek/sample_list_operations_view",
     "views/seqpeek/color_by_legend_view",
+
+    "./color_mapping/lesk_amino_acid",
+
     "hbs!templates/seqpeek/mutations_map",
     "hbs!templates/seqpeek/mutations_map_table",
     "hbs!templates/seqpeek/sample_list_dropdown_caption"
@@ -14,6 +17,7 @@ define([
               ProteinDomainModel, SeqPeekDataAdapters, SeqPeekBuilder, SeqPeekMiniLocatorFactory,
               SampleListOperationsView,
               ColorByLegendView,
+              AminoAcidColorMapping,
               MutationsMapTpl, MutationsMapTableTpl,
               SampleListCaptionTpl
     ) {
@@ -37,7 +41,7 @@ define([
         var REGION_TRACK_HEIGHT = 5;
         var PROTEIN_DOMAIN_HEIGHT = 20;
         var PROTEIN_DOMAIN_TRACK_HEIGHT = 40;
-        var VIEWPORT_WIDTH = 1000;
+        var VIEWPORT_WIDTH = 1500;
         var SAMPLE_PLOT_TRACK_STEM_HEIGHT = 30;
         var TRACK_SVG_WIDTH = VIEWPORT_WIDTH + Y_AXIS_SCALE_WIDTH;
 
@@ -141,20 +145,6 @@ define([
                             color: UNKNOWN_TYPE_COLOR
                         };
                     }
-                },
-                color_highlight_fn: function (data_point) {
-                    if (_.has(this.selected_samples_map, data_point["patient_id"])) {
-                        var id = MUTATION_TYPE_KEY_FN(data_point);
-                        if (_.has(MUTATION_TYPE_COLOR_MAP, id)) {
-                            return {label: id, color: MUTATION_TYPE_COLOR_MAP[id]};
-                        }
-                        else {
-                            return {label: id, color: UNKNOWN_TYPE_COLOR};
-                        }
-                    }
-                    else {
-                        return {label:id, color:NOT_SELECTED_DATA_POINT_COLOR};
-                    }
                 }
             },
             "DNA Change": {
@@ -167,38 +157,9 @@ define([
                     else {
                         return {label: id, color: UNKNOWN_TYPE_COLOR};
                     }
-                },
-                color_highlight_fn: function(data_point) {
-                    if (_.has(this.selected_samples_map, data_point["patient_id"])) {
-                        var id = DNA_CHANGE_KEY_FN(data_point);
-                        if (_.has(DNA_CHANGE_COLOR_MAP, id)) {
-                            return DNA_CHANGE_COLOR_MAP[id];
-                        }
-                        else {
-                            return {label: id, color: UNKNOWN_TYPE_COLOR};
-                        }
-                    }
-                    else {
-                        return {label: "Not selected", color: NOT_SELECTED_DATA_POINT_COLOR};
-                    }
                 }
             },
-            "Protein Change": {
-                data_getter: PROTEIN_CHANGE_KEY_FN,
-                color_fn: function(data_point) {
-                    var id = PROTEIN_CHANGE_KEY_FN(data_point);
-                    return {label: id, color: LOLLIPOP_COLOR_SCALE(id)};
-                },
-                color_highlight_fn: function(data_point) {
-                    if (_.has(this.selected_samples_map, data_point["patient_id"])) {
-                        var id = PROTEIN_CHANGE_KEY_FN(data_point);
-                        return {label: id, color: LOLLIPOP_COLOR_SCALE(id)};
-                    }
-                    else {
-                        return {label: "Not selected", color: NOT_SELECTED_DATA_POINT_COLOR};
-                    }
-                }
-            }
+            "Amino Acid": AminoAcidColorMapping
         };
 
         var COLOR_BY_CATEGORIES_FOR_BAR_PLOT = {
@@ -556,9 +517,24 @@ define([
                 }
             },
 
+            __create_color_highlight_fn: function() {
+                var color_mapping = this.selected_color_by;
+                var color_fn = function(data_point) {
+                    var color_fn = color_mapping.color_fn;
+                    if (_.has(this.selected_samples_map, data_point["patient_id"])) {
+                        return color_fn(data_point);
+                    }
+                    else {
+                        return {label: "Not selected", color: NOT_SELECTED_DATA_POINT_COLOR};
+                    }
+                };
+
+                return _.bind(color_fn, this);
+            },
+
             __build_seqpeek_config_for_protein_view: function(region_array) {
                 var sample_plot_color_by = this.sample_highlight_mode == SAMPLE_HIGHLIGHT_MODES.ALL ?
-                    _.bind(this.selected_color_by.color_fn, this) : _.bind(this.selected_color_by.color_highlight_fn, this);
+                    this.selected_color_by.color_fn : this.__create_color_highlight_fn();
 
                 var sample_plot_color_by_function = _.bind(function(d) {
                     return sample_plot_color_by(d).color;

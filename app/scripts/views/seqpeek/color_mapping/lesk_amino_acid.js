@@ -17,17 +17,6 @@ define([
 
     var AMINO_ACID_MUTATION_FIELD_NAME = "amino_acid_mutation";
 
-    var AMINO_ACID_KEY_FN = function(data_point) {
-        var id = data_point[AMINO_ACID_MUTATION_FIELD_NAME];
-
-        if (_.has(AMINO_ACID_MAPPING, id)) {
-            return AMINO_ACID_MAPPING[id];
-        }
-        else {
-            return id;
-        }
-    };
-
     ///////////////////////////////////////////////////////////
     // Mapping of amino acids to the groups
     //
@@ -79,16 +68,35 @@ define([
     AMINO_ACID_COLOR_MAP[LESK_AMINO_ACID_NEGATIVELY_CHARGED] = {label: "Negatively Charged", color: "red"};
     AMINO_ACID_COLOR_MAP[LESK_AMINO_ACID_POSITIVELY_CHARGED] = {label: "Positively Charged", color: "blue"};
 
-    return {
-        data_getter: AMINO_ACID_KEY_FN,
-        color_fn: function (data_point) {
-            var id = AMINO_ACID_KEY_FN(data_point);
-            if (_.has(AMINO_ACID_COLOR_MAP, id)) {
-                return AMINO_ACID_COLOR_MAP[id];
+    var prototype = {
+        _amino_acid_mutation_field_name: AMINO_ACID_MUTATION_FIELD_NAME,
+        _amino_acid_mapping: AMINO_ACID_MAPPING,
+        _amino_acid_color_map: AMINO_ACID_COLOR_MAP,
+        _unknown_type_color: UNKNOWN_TYPE_COLOR,
+        data_getter: function(data_point) {
+            var id = data_point[this._amino_acid_mutation_field_name];
+
+            if (_.has(this._amino_acid_mapping, id)) {
+                return this._amino_acid_mapping[id];
             }
             else {
-                return {label: id, color: UNKNOWN_TYPE_COLOR};
+                return id;
+            }
+        },
+        color_fn: function (data_point) {
+            var id = this.data_getter(data_point);
+            if (_.has(this._amino_acid_color_map, id)) {
+                return this._amino_acid_color_map[id];
+            }
+            else {
+                return {label: id, color: this._unknown_type_color};
             }
         }
     };
+
+    return {
+        create: function() {
+            return Object.create(prototype);
+        }
+    }
 });

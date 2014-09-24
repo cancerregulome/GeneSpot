@@ -8,19 +8,19 @@ function ($, _, Backbone,
           Tpl
 ) {
     return Backbone.View.extend({
-        setData: function(color_by_type, color_map, data_getter, data_array) {
+        setData: function(color_by_type, color_map, data_array) {
             var keyed_rows = _.chain(data_array)
                 .map(function(data_point) {
                     return {
                         data_point: data_point,
-                        color_fn_key: data_getter(data_point)
+                        color_fn_key: color_map.data_getter(data_point)
                     };
                 })
                 .value();
 
             var color_by_items = _.chain(keyed_rows)
                 .map(function(row) {
-                    var color_result = color_map(row.data_point);
+                    var color_result = color_map.color_fn(row.data_point);
                     return {
                         label: color_result.label,
                         color: color_result.color

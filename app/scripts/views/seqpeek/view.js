@@ -8,6 +8,7 @@ define([
     "views/seqpeek/color_by_legend_view",
 
     "./color_mapping/lesk_amino_acid",
+    "./color_mapping/substitution_type",
 
     "hbs!templates/seqpeek/mutations_map",
     "hbs!templates/seqpeek/mutations_map_table",
@@ -18,6 +19,7 @@ define([
               SampleListOperationsView,
               ColorByLegendView,
               AminoAcidColorMappingFactory,
+              SubstitutionTypeColorMappingFactory,
               MutationsMapTpl, MutationsMapTableTpl,
               SampleListCaptionTpl
     ) {
@@ -132,9 +134,13 @@ define([
         amino_acid_wildtype_color_map._amino_acid_mutation_field_name = AMINO_ACID_WILDTYPE_FIELD_NAME;
 
         var COLOR_BY_CATEGORIES = {
+
             "Mutation Type": {
                 data_getter: MUTATION_TYPE_KEY_FN,
-                color_fn: function (data_point) {
+                getGroup: MUTATION_TYPE_KEY_FN,
+                getGroupLabel: MUTATION_TYPE_KEY_FN,
+                getKey: MUTATION_TYPE_KEY_FN,
+                getColor: function (data_point) {
                     var id = MUTATION_TYPE_KEY_FN(data_point);
                     if (_.has(MUTATION_TYPE_COLOR_MAP, id)) {
                         return {
@@ -150,9 +156,11 @@ define([
                     }
                 }
             },
+            // TODO refactor into color mapping object
+            /*
             "DNA Change": {
                 data_getter: DNA_CHANGE_KEY_FN,
-                color_fn: function(data_point) {
+                getColor: function(data_point) {
                     var id = DNA_CHANGE_KEY_FN(data_point);
                     if (_.has(DNA_CHANGE_COLOR_MAP, id)) {
                         return DNA_CHANGE_COLOR_MAP[id];
@@ -162,8 +170,10 @@ define([
                     }
                 }
             },
+            */
             "Amino Acid Mutation": AminoAcidColorMappingFactory.create(),
-            "Amino Acid Wildtype": amino_acid_wildtype_color_map
+            "Amino Acid Wildtype": amino_acid_wildtype_color_map,
+            "Substitution Type": SubstitutionTypeColorMappingFactory.create()
         };
 
         var COLOR_BY_CATEGORIES_FOR_BAR_PLOT = {
@@ -526,11 +536,11 @@ define([
 
                 var sample_plot_color_by_function = function(data_point) {
                     if (self.sample_highlight_mode == SAMPLE_HIGHLIGHT_MODES.ALL) {
-                        return self.selected_color_by.color_fn(data_point).color;
+                        return self.selected_color_by.getColor(data_point).color;
                     }
                     else {
                         if (_.has(self.selected_samples_map, data_point["patient_id"])) {
-                            return self.selected_color_by.color_fn(data_point).color;
+                            return self.selected_color_by.getColor(data_point).color;
                         }
                         else {
                             return NOT_SELECTED_DATA_POINT_COLOR;

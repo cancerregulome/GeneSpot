@@ -58,6 +58,8 @@ define([
         "R": LESK_AMINO_ACID_POSITIVELY_CHARGED
     };
 
+    var UNKNOWN = 0;
+
     ///////////////////////////////////////////////////////////
     // Mapping of the groups to colors
     //
@@ -73,23 +75,36 @@ define([
         _amino_acid_mapping: AMINO_ACID_MAPPING,
         _amino_acid_color_map: AMINO_ACID_COLOR_MAP,
         _unknown_type_color: UNKNOWN_TYPE_COLOR,
-        data_getter: function(data_point) {
-            var id = data_point[this._amino_acid_mutation_field_name];
+        getKey: function(data_point) {
+            return data_point[this._amino_acid_mutation_field_name];
+        },
+        getGroup: function(data_point) {
+            var key = data_point[this._amino_acid_mutation_field_name];
 
-            if (_.has(this._amino_acid_mapping, id)) {
-                return this._amino_acid_mapping[id];
+            if (_.has(this._amino_acid_mapping, key)) {
+                return this._amino_acid_mapping[key];
             }
             else {
-                return id;
+                return UNKNOWN;
             }
         },
-        color_fn: function (data_point) {
-            var id = this.data_getter(data_point);
-            if (_.has(this._amino_acid_color_map, id)) {
-                return this._amino_acid_color_map[id];
+        getGroupLabel: function(data_point) {
+            var key = data_point[this._amino_acid_mutation_field_name];
+            var group = this.getGroup(data_point);
+            if (_.has(this._amino_acid_color_map, group)) {
+                return this._amino_acid_color_map[group].label;
             }
             else {
-                return {label: id, color: this._unknown_type_color};
+                return key;
+            }
+        },
+        getColor: function (data_point) {
+            var group = this.getGroup(data_point);
+            if (_.has(this._amino_acid_color_map, group)) {
+                return this._amino_acid_color_map[group];
+            }
+            else {
+                return {label: group, color: this._unknown_type_color};
             }
         }
     };

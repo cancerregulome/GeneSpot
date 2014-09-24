@@ -13,18 +13,17 @@ function ($, _, Backbone,
                 .map(function(data_point) {
                     return {
                         data_point: data_point,
-                        color_fn_key: color_map.data_getter(data_point)
+                        color_fn_key: color_map.getKey(data_point)
                     };
                 })
                 .value();
 
             var color_by_items = _.chain(keyed_rows)
                 .map(function(row) {
-                    var color_result = color_map.color_fn(row.data_point);
                     return {
-                        label: color_result.label,
-                        color: color_result.color
-                    };
+                        label: color_map.getGroupLabel(row.data_point),
+                        color: color_map.getColor(row.data_point).color
+                    }
                 })
                 .unique(function(d) {
                     return d.label;
